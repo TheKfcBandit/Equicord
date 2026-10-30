@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { addChatBarButton, ChatBarButton, removeChatBarButton } from "@api/ChatButtons";
+import { addChatBarButton, ChatBarButton, ChatBarButtonFactory, removeChatBarButton } from "@api/ChatButtons";
 import { ApplicationCommandInputType, sendBotMessage } from "@api/Commands";
 import { NavContextMenuPatchCallback } from "@api/ContextMenu";
 import { definePluginSettings } from "@api/Settings";
@@ -25,6 +25,8 @@ const settings = definePluginSettings({
     },
 });
 
+type SilentCallRequest = XMLHttpRequest & { _scMethod?: string; _scUrl?: string; };
+
 let origOpen: typeof XMLHttpRequest.prototype.open | null = null;
 let origSend: typeof XMLHttpRequest.prototype.send | null = null;
 
@@ -34,12 +36,12 @@ function installXhrPatch() {
     origSend = XMLHttpRequest.prototype.send;
     const _open = origOpen, _send = origSend;
     XMLHttpRequest.prototype.open = function (method, url, ...rest) {
-        this._scMethod = method;
-        this._scUrl = String(url);
+        (this as SilentCallRequest)._scMethod = method;
+        (this as SilentCallRequest)._scUrl = String(url);
         return _open.apply(this, arguments as any);
     };
     XMLHttpRequest.prototype.send = function (body?) {
-        if (settings.store.isEnabled && this._scMethod === "POST" && this._scUrl?.includes("/call/ring")) {
+        if (settings.store.isEnabled && (this as SilentCallRequest)._scMethod === "POST" && (this as SilentCallRequest)._scUrl?.includes("/call/ring")) {
             console.debug("[SilentCall] blocked /call/ring");
             return;
         }
@@ -57,7 +59,7 @@ function uninstallXhrPatch() {
 const toggle = () => { settings.store.isEnabled = !settings.store.isEnabled; };
 
 // always green phone — thick red bar overlaid when disabled
-function PhoneIcon({ on }: { on: boolean; }) {
+function PhoneIcon({ on = false }: { on?: boolean; }) {
     return (
         <svg width="24" height="24" viewBox="0 0 24 24">
             {/* phone handset — always green */}
@@ -81,7 +83,7 @@ function PhoneIcon({ on }: { on: boolean; }) {
     );
 }
 
-const SilentCallButton: ChatBarButton = ({ isMainChat, channel }) => {
+const SilentCallButton: ChatBarButtonFactory = ({ isMainChat, channel }) => {
     const { isEnabled, showIcon } = settings.use(["isEnabled", "showIcon"]);
     // only show in DMs (type 1) and Group DMs (type 3)
     if (!isMainChat || !showIcon || (channel.type !== 1 && channel.type !== 3)) return null;
@@ -114,7 +116,7 @@ const patchCtxMenu: NavContextMenuPatchCallback = (children, { channel }) => {
 export default definePlugin({
     name: "SilentCall",
     description: "Join DM/Group DM calls without ringing anyone.",
-    authors: [{ name: "k1ng_op", id: 641266820187160576 }],
+    authors: [{ name: "k1ng_op", id: 641266820187160576n }],
     settings,
     dependencies: ["ChatInputButtonAPI"],
 
@@ -141,7 +143,7 @@ export default definePlugin({
             origOpen = origSend = null;
             console.error("[SilentCall] xhr patch failed:", e);
         }
-        if (settings.store.showIcon) addChatBarButton("SilentCall", SilentCallButton);
+        if (settings.store.showIcon) addChatBarButton("SilentCall", SilentCallButton, PhoneIcon);
     },
 
     stop() {
