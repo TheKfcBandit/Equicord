@@ -6,7 +6,7 @@
  *
  * Behaviour:
  *   - Toggle OFF  → Discord captures stream thumbnail normally (no-op).
- *   - Toggle ON, no image → thumbnail upload is suppressed entirely.
+ *   - Toggle ON, no image → original thumbnail is used (fail-safe).
  *   - Toggle ON, image set → your custom JPEG is sent as the thumbnail.
  *
  * Install:
@@ -51,7 +51,7 @@ const settings = definePluginSettings({
         type: OptionType.BOOLEAN,
         description:
             "Intercept stream preview capture. " +
-            "Enabled + no image → thumbnail suppressed. " +
+            "Enabled + no image → normal thumbnail (no replacement). " +
             "Enabled + image set → custom image sent as thumbnail.",
         default: false,
     },
@@ -146,7 +146,7 @@ function ImagePickerComponent() {
                     />
                 ) : (
                     <Text tag="p" size="sm" color="text-muted" style={{ textAlign: "center", margin: 0 }}>
-                        No image set — thumbnail upload will be suppressed while active.
+                        No image set — Discord will use its normal stream thumbnail.
                     </Text>
                 )}
             </div>
@@ -179,38 +179,41 @@ function ImagePickerComponent() {
 export default definePlugin({
     name: "CustomStreamPreview",
     description:
-        "Prevents Discord from capturing your screen as a stream thumbnail. " +
-        "Optionally replaces it with a custom static image.",
+        "Replaces Discord stream thumbnails with a configured static image.",
     authors: [{ id: 1288832011452153910n, name: "overocai" }],
 
     settings,
 
-    // ─── webpack patch ─────────────────────────────────────────────────────────
-    //
-    // Target: ApplicationStreamPreviewUploadManager
-    //
-    // Original:  let t = e.toDataURL("image/jpeg");
-    // Patched:   let t = $self._getStreamPreview(e.toDataURL("image/jpeg")); if (!t) return;
-    //
+    // Patch the preview upload manager rather than a particular declaration form.
+    // Discord changes its minified variable declarations regularly.
     patches: [
         {
-            find: "ApplicationStreamPreviewUploadManager",
-            replacement: {
-                match: /((?:let|const|var) (.)=)(.\.toDataURL\("image\/jpeg"\));/,
-                replace: (_: string, prefix: string, preview: string, original: string) =>
-                    `${prefix}$self._getStreamPreview(${original}); if (!${preview}) return;`,
-            },
-            noWarn: true,
+            find: '"ApplicationStreamPreviewUploadManager"',
+            replacement: [
+                {
+                    // Replace the JPEG at its source when the capture path is used.
+                    match: /(\\i)\\.toDataURL\\("image\\/jpeg"\\)/,
+                    replace: '$self._getStreamPreview($&)',
+                    noWarn: true,
+                },
+                {
+                    // Also replace the actual upload field. This covers code paths
+                    // that already have a thumbnail or bypass canvas conversion.
+                    match: /\\{thumbnail:(\\i)\\}/g,
+                    replace: '{thumbnail:$self._getStreamPreview($1)}',
+                },
+            ],
         },
     ],
 
     // ─── runtime hook ──────────────────────────────────────────────────────────
-    _getStreamPreview(original: string): string | undefined {
+    _getStreamPreview(original: string): string {
         if (!settings.store.streamPreview) return original;
 
         if (!cachedPreview) {
-            logger.warn("Enabled but no image configured — thumbnail will not be uploaded.");
-            return undefined;
+            // With no custom image, keep the original preview rather than sending
+            // an invalid empty upload. Thumbnail suppression needs a separate hook.
+            return original;
         }
 
         return cachedPreview;
