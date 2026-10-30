@@ -155,7 +155,7 @@ function ImagePickerComponent() {
                     {image ? "Change Preview" : "Add Preview"}
                 </button>
                 {image && (
-                    <Button
+                    <button
                         type="button"
                         style={{ padding: "6px 12px", border: "none", borderRadius: 4, background: "var(--button-danger-background)", color: "var(--white-500)", cursor: "pointer" }}
                         onClick={() => {
@@ -164,7 +164,7 @@ function ImagePickerComponent() {
                         }}
                     >
                         Remove Preview
-                    </Button>
+                    </button>
                 )}
             </div>
 
