@@ -167,7 +167,7 @@ function ImagePickerComponent() {
                         }}
                     >
                         Remove Preview
-                    </button>
+                    </Button>
                 )}
             </div>
 
