@@ -10,7 +10,7 @@
  */
 
 import { UserAreaButton, UserAreaRenderProps } from "@api/UserArea";
-import { ModalContent, ModalHeader, ModalRoot, ModalSize, openModal } from "@utils/modal";
+import { Modal, openModal } from "@webpack/common";
 import { Text } from "@components/Text";
 import { React } from "@webpack/common";
 
@@ -59,14 +59,9 @@ function BitrateSlider() {
 
 function openBitrateModal() {
     openModal(props => (
-        <ModalRoot {...props} size={ModalSize.SMALL}>
-            <ModalHeader>
-                <Text size="lg" weight="semibold">Stereo Mic — Bitrate</Text>
-            </ModalHeader>
-            <ModalContent>
-                <BitrateSlider />
-            </ModalContent>
-        </ModalRoot>
+        <Modal {...props} size="sm" title="Stereo Mic — Bitrate">
+            <BitrateSlider />
+        </Modal>
     ));
 }
 
