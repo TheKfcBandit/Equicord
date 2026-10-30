@@ -20,7 +20,7 @@
 import { definePluginSettings } from "../../api/Settings";
 import { Logger } from "../../utils/Logger";
 import definePlugin, { OptionType } from "../../utils/types";
-import { Button, Forms, React, showToast } from "../../webpack/common";
+import { React, showToast } from "../../webpack/common";
 
 // ─── storage (localStorage — synchronous, no Equicord API dependency) ─────────
 const STORAGE_KEY = "CustomStreamPreview_fakePreview";
@@ -143,21 +143,21 @@ function ImagePickerComponent() {
                         }}
                     />
                 ) : (
-                    <Forms.FormText style={{ color: "var(--text-muted)", textAlign: "center" }}>
+                    <p style={{ color: "var(--text-muted)", textAlign: "center", margin: 0 }}>
                         No image set — thumbnail upload will be suppressed while active.
-                    </Forms.FormText>
+                    </p>
                 )}
             </div>
 
             {/* Action buttons */}
             <div style={{ display: "flex", gap: "8px" }}>
-                <Button size={Button.Sizes.SMALL} onClick={openFilePicker}>
+                <button type="button" onClick={openFilePicker} style={{ padding: "6px 12px", border: "none", borderRadius: 4, background: "var(--button-filled-brand-background)", color: "var(--white-500)", cursor: "pointer" }}>
                     {image ? "Change Preview" : "Add Preview"}
-                </Button>
+                </button>
                 {image && (
                     <Button
-                        size={Button.Sizes.SMALL}
-                        color={Button.Colors.RED}
+                        type="button"
+                        style={{ padding: "6px 12px", border: "none", borderRadius: 4, background: "var(--button-danger-background)", color: "var(--white-500)", cursor: "pointer" }}
                         onClick={() => {
                             updateImage("");
                             showToast("Custom stream preview removed.", "success");
