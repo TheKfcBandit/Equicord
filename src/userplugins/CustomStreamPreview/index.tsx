@@ -99,12 +99,12 @@ function ImagePickerComponent() {
                     const base64   = jpegDataUrl.split(",")[1];
                     const byteSize = Math.ceil((base64.length * 3) / 4);
                     if (byteSize > 200 * 1024) {
-                        showToast("Image must be under 200 KB after JPEG conversion.", "failure");
+                        showToast({ text: "Image must be under 200 KB after JPEG conversion.", variant: "critical" });
                         return;
                     }
 
                     updateImage(jpegDataUrl);
-                    showToast("Custom stream preview saved!", "success");
+                    showToast({ text: "Custom stream preview saved!", variant: "success" });
                 };
                 img.src = rawDataUrl;
             };
@@ -163,7 +163,7 @@ function ImagePickerComponent() {
                         variant="dangerPrimary"
                         onClick={() => {
                             updateImage("");
-                            showToast("Custom stream preview removed.", "success");
+                            showToast({ text: "Custom stream preview removed.", variant: "success" });
                         }}
                     >
                         Remove Preview
