@@ -11,7 +11,7 @@
 
 import { UserAreaButton, UserAreaRenderProps } from "@api/UserArea";
 import { ModalContent, ModalHeader, ModalRoot, ModalSize, openModal } from "@utils/modal";
-import { React, Text } from "@webpack/common";
+import { React } from "@webpack/common";
 
 import { applyBitrate, settings } from "./stereoMic";
 
@@ -35,9 +35,9 @@ function BitrateSlider() {
 
     return (
         <div style={{ padding: "16px 0" }}>
-            <Text variant="text-md/semibold" style={{ marginBottom: 12, display: "block" }}>
+            <div style={{ marginBottom: 12, fontWeight: 600 }}>
                 {`Voice Bitrate: ${val} kbps`}
-            </Text>
+            </div>
             <input
                 type="range"
                 min={8}
@@ -60,7 +60,7 @@ function openBitrateModal() {
     openModal(props => (
         <ModalRoot {...props} size={ModalSize.SMALL}>
             <ModalHeader>
-                <Text variant="heading-lg/semibold">Stereo Mic — Bitrate</Text>
+                <span style={{ fontSize: "1.25rem", fontWeight: 600 }}>Stereo Mic — Bitrate</span>
             </ModalHeader>
             <ModalContent>
                 <BitrateSlider />
