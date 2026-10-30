@@ -192,14 +192,14 @@ export default definePlugin({
             replacement: [
                 {
                     // Replace the JPEG at its source when the capture path is used.
-                    match: /(\\i)\\.toDataURL\\("image\\/jpeg"\\)/,
+                    match: /([A-Za-z_$][\w$]*)\.toDataURL\("image\/jpeg"\)/,
                     replace: '$self._getStreamPreview($&)',
                     noWarn: true,
                 },
                 {
                     // Also replace the actual upload field. This covers code paths
                     // that already have a thumbnail or bypass canvas conversion.
-                    match: /\\{thumbnail:(\\i)\\}/g,
+                    match: /\{thumbnail:([A-Za-z_$][\w$]*)\}/g,
                     replace: '{thumbnail:$self._getStreamPreview($1)}',
                 },
             ],
