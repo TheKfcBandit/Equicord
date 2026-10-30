@@ -10,9 +10,8 @@
  */
 
 import { UserAreaButton, UserAreaRenderProps } from "@api/UserArea";
-import { Modal, openModal } from "@webpack/common";
 import { Text } from "@components/Text";
-import { React } from "@webpack/common";
+import { Modal, openModal, React } from "@webpack/common";
 
 import { applyBitrate, settings } from "./stereoMic";
 
