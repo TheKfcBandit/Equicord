@@ -18,6 +18,8 @@
 // Relative imports — works in any Vencord/Equicord build regardless of
 // whether the build system exposes the @api / @utils / @webpack aliases.
 import { definePluginSettings } from "../../api/Settings";
+import { Button } from "../../components/Button";
+import { Text } from "../../components/Text";
 import { Logger } from "../../utils/Logger";
 import definePlugin, { OptionType } from "../../utils/types";
 import { React, showToast } from "../../webpack/common";
@@ -143,21 +145,22 @@ function ImagePickerComponent() {
                         }}
                     />
                 ) : (
-                    <p style={{ color: "var(--text-muted)", textAlign: "center", margin: 0 }}>
+                    <Text tag="p" size="sm" color="text-muted" style={{ textAlign: "center", margin: 0 }}>
                         No image set — thumbnail upload will be suppressed while active.
-                    </p>
+                    </Text>
                 )}
             </div>
 
             {/* Action buttons */}
             <div style={{ display: "flex", gap: "8px" }}>
-                <button type="button" onClick={openFilePicker} style={{ padding: "6px 12px", border: "none", borderRadius: 4, background: "var(--button-filled-brand-background)", color: "var(--white-500)", cursor: "pointer" }}>
+                <Button type="button" size="small" onClick={openFilePicker}>
                     {image ? "Change Preview" : "Add Preview"}
-                </button>
+                </Button>
                 {image && (
-                    <button
+                    <Button
                         type="button"
-                        style={{ padding: "6px 12px", border: "none", borderRadius: 4, background: "var(--button-danger-background)", color: "var(--white-500)", cursor: "pointer" }}
+                        size="small"
+                        variant="dangerPrimary"
                         onClick={() => {
                             updateImage("");
                             showToast("Custom stream preview removed.", "success");
