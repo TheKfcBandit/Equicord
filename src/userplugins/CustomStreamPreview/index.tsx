@@ -17,6 +17,7 @@
 
 // Relative imports — works in any Vencord/Equicord build regardless of
 // whether the build system exposes the @api / @utils / @webpack aliases.
+import { del, get, set } from "../../api/DataStore";
 import { definePluginSettings } from "../../api/Settings";
 import { Button } from "../../components/Button";
 import { Text } from "../../components/Text";
@@ -24,26 +25,52 @@ import { Logger } from "../../utils/Logger";
 import definePlugin, { OptionType } from "../../utils/types";
 import { React, showToast } from "../../webpack/common";
 
-// ─── storage (localStorage — synchronous, no Equicord API dependency) ─────────
+// IndexedDB storage is persistent across settings page remounts.
+// Do not claim success until the write transaction completes.
 const STORAGE_KEY = "CustomStreamPreview_fakePreview";
-
-function loadPreview(): string {
-    try { return localStorage.getItem(STORAGE_KEY) ?? ""; }
-    catch { return ""; }
-}
-
-function savePreview(val: string): void {
-    try {
-        if (val) localStorage.setItem(STORAGE_KEY, val);
-        else     localStorage.removeItem(STORAGE_KEY);
-    } catch { /* quota / private-mode — silently ignore */ }
-}
-
-// ─── in-memory cache ──────────────────────────────────────────────────────────
-// _getStreamPreview() is called synchronously inside Discord's minified bundle.
-// localStorage is synchronous so we can populate the cache at module-load time.
 const logger = new Logger("CustomStreamPreview");
-let cachedPreview: string = loadPreview();
+let cachedPreview = "";
+let revision = 0;
+let loadPromise: Promise<string> | undefined;
+
+function loadPreview(): Promise<string> {
+    return loadPromise ??= get<string>(STORAGE_KEY).then(async saved => {
+        let value = saved ?? "";
+        // One-time migration from the previous localStorage implementation.
+        if (!value) {
+            try {
+                const legacy = localStorage.getItem(STORAGE_KEY);
+                if (legacy) {
+                    await set(STORAGE_KEY, legacy);
+                    value = legacy;
+                    localStorage.removeItem(STORAGE_KEY);
+                }
+            } catch (error) {
+                logger.warn("Legacy preview migration unavailable", error);
+            }
+        }
+        return value;
+    }).catch(error => {
+        loadPromise = undefined;
+        logger.error("Failed to load custom stream preview", error);
+        throw error;
+    });
+}
+
+async function persistPreview(value: string): Promise<void> {
+    if (value) await set(STORAGE_KEY, value);
+    else await del(STORAGE_KEY);
+    cachedPreview = value;
+    loadPromise = Promise.resolve(value);
+    revision++;
+}
+
+async function hydratePreview(): Promise<string> {
+    const before = revision;
+    const value = await loadPreview();
+    if (before === revision) cachedPreview = value;
+    return cachedPreview;
+}
 
 // ─── settings ─────────────────────────────────────────────────────────────────
 const settings = definePluginSettings({
@@ -65,12 +92,28 @@ const settings = definePluginSettings({
 // ─── image picker component ───────────────────────────────────────────────────
 function ImagePickerComponent() {
     const { streamPreview } = settings.use(["streamPreview"]);
-    const [image, setImageState] = React.useState<string>(() => loadPreview());
+    const [image, setImageState] = React.useState<string>(cachedPreview);
 
-    function updateImage(val: string) {
-        setImageState(val);
-        cachedPreview = val;
-        savePreview(val);
+    React.useEffect(() => {
+        let active = true;
+        void hydratePreview().then(value => {
+            if (active) setImageState(value);
+        }).catch(() => {
+            if (active) showToast({ text: "Could not load saved stream preview.", variant: "critical" });
+        });
+        return () => { active = false; };
+    }, []);
+
+    async function updateImage(value: string): Promise<boolean> {
+        try {
+            await persistPreview(value);
+            setImageState(value);
+            return true;
+        } catch (error) {
+            logger.error("Failed to save stream preview", error);
+            showToast({ text: "Could not save custom stream preview.", variant: "critical" });
+            return false;
+        }
     }
 
     function openFilePicker() {
@@ -88,7 +131,7 @@ function ImagePickerComponent() {
 
                 // Re-encode as JPEG to match canvas.toDataURL("image/jpeg").
                 const img = new Image();
-                img.onload = () => {
+                img.onload = async () => {
                     const canvas = document.createElement("canvas");
                     canvas.width  = img.naturalWidth;
                     canvas.height = img.naturalHeight;
@@ -103,8 +146,9 @@ function ImagePickerComponent() {
                         return;
                     }
 
-                    updateImage(jpegDataUrl);
-                    showToast({ text: "Custom stream preview saved!", variant: "success" });
+                    if (await updateImage(jpegDataUrl)) {
+                        showToast({ text: "Custom stream preview saved.", variant: "success" });
+                    }
                 };
                 img.src = rawDataUrl;
             };
@@ -162,8 +206,9 @@ function ImagePickerComponent() {
                         size="small"
                         variant="dangerPrimary"
                         onClick={() => {
-                            updateImage("");
-                            showToast({ text: "Custom stream preview removed.", variant: "success" });
+                            void updateImage("").then(saved => {
+                                if (saved) showToast({ text: "Custom stream preview removed.", variant: "success" });
+                            });
                         }}
                     >
                         Remove Preview
@@ -184,6 +229,10 @@ export default definePlugin({
 
     settings,
 
+    start() {
+        void hydratePreview().catch(() => {});
+    },
+
     // Patch the preview upload manager rather than a particular declaration form.
     // Discord changes its minified variable declarations regularly.
     patches: [
@@ -194,7 +243,6 @@ export default definePlugin({
                     // Replace the JPEG at its source when the capture path is used.
                     match: /([A-Za-z_$][\w$]*)\.toDataURL\("image\/jpeg"\)/,
                     replace: '$self._getStreamPreview($&)',
-                    noWarn: true,
                 },
                 {
                     // Also replace the actual upload field. This covers code paths
