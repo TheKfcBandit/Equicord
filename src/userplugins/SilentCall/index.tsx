@@ -143,7 +143,7 @@ export default definePlugin({
             origOpen = origSend = null;
             console.error("[SilentCall] xhr patch failed:", e);
         }
-        if (settings.store.showIcon) addChatBarButton("SilentCall", SilentCallButton, PhoneIcon);
+        if (settings.store.showIcon) addChatBarButton("SilentCall", SilentCallButton, () => <PhoneIcon on={settings.store.isEnabled} />);
     },
 
     stop() {
