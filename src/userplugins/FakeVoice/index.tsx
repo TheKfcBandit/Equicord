@@ -54,7 +54,7 @@ function patchSocket() {
 
     originalSend = socket.send;
     
-    const patchedSend = function (op: number, data: any, ...args: any[]) {
+    const patchedSend = function (this: typeof socket, op: number, data: any, ...args: any[]) {
         // Opcode 4 is VOICE_STATE_UPDATE
         if (op === 4 && data) {
             if (isFakeMuted) data.self_mute = true;

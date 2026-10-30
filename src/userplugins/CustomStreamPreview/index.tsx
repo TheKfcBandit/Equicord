@@ -18,9 +18,11 @@
 // Relative imports — works in any Vencord/Equicord build regardless of
 // whether the build system exposes the @api / @utils / @webpack aliases.
 import { definePluginSettings } from "../../api/Settings";
+import { Button } from "../../components/Button";
+import { Text } from "../../components/Text";
 import { Logger } from "../../utils/Logger";
 import definePlugin, { OptionType } from "../../utils/types";
-import { Button, Forms, React, showToast } from "../../webpack/common";
+import { React, showToast } from "../../webpack/common";
 
 // ─── storage (localStorage — synchronous, no Equicord API dependency) ─────────
 const STORAGE_KEY = "CustomStreamPreview_fakePreview";
@@ -97,12 +99,12 @@ function ImagePickerComponent() {
                     const base64   = jpegDataUrl.split(",")[1];
                     const byteSize = Math.ceil((base64.length * 3) / 4);
                     if (byteSize > 200 * 1024) {
-                        showToast("Image must be under 200 KB after JPEG conversion.", "failure");
+                        showToast({ text: "Image must be under 200 KB after JPEG conversion.", variant: "critical" });
                         return;
                     }
 
                     updateImage(jpegDataUrl);
-                    showToast("Custom stream preview saved!", "success");
+                    showToast({ text: "Custom stream preview saved!", variant: "success" });
                 };
                 img.src = rawDataUrl;
             };
@@ -143,24 +145,25 @@ function ImagePickerComponent() {
                         }}
                     />
                 ) : (
-                    <Forms.FormText style={{ color: "var(--text-muted)", textAlign: "center" }}>
+                    <Text tag="p" size="sm" color="text-muted" style={{ textAlign: "center", margin: 0 }}>
                         No image set — thumbnail upload will be suppressed while active.
-                    </Forms.FormText>
+                    </Text>
                 )}
             </div>
 
             {/* Action buttons */}
             <div style={{ display: "flex", gap: "8px" }}>
-                <Button size={Button.Sizes.SMALL} onClick={openFilePicker}>
+                <Button type="button" size="small" onClick={openFilePicker}>
                     {image ? "Change Preview" : "Add Preview"}
                 </Button>
                 {image && (
                     <Button
-                        size={Button.Sizes.SMALL}
-                        color={Button.Colors.RED}
+                        type="button"
+                        size="small"
+                        variant="dangerPrimary"
                         onClick={() => {
                             updateImage("");
-                            showToast("Custom stream preview removed.", "success");
+                            showToast({ text: "Custom stream preview removed.", variant: "success" });
                         }}
                     >
                         Remove Preview
