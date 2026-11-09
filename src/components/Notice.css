@@ -26,7 +26,8 @@
     min-height: 0;
     opacity: 1;
     overflow: hidden;
-    transition: opacity var(--expand-fade-duration, 0.1s) var(--expand-easing-function, ease) var(--expand-structural-duration, 0.2s);
+    transition: opacity var(--expand-fade-duration, 0.1s) var(--expand-easing-function, ease)
+        var(--expand-structural-duration, 0.2s);
 }
 
 .vc-notice-hidden .vc-notice-inner {
@@ -54,14 +55,14 @@
     font-size: 14px;
     font-weight: 500;
     line-height: 1.2857;
-    color: var(--text-default);
+    color: var(--white);
 }
 
 .vc-notice-text p {
     margin: 0;
 }
 
-.vc-notice-text p~p {
+.vc-notice-text p ~ p {
     margin-top: 8px;
 }
 
